@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, FastAPI
 
 from app.api.routes.agents import router as agents_router
+from app.api.routes.runs import router as runs_router
 from app.core.config import Settings, get_settings
 from app.db.init_db import create_database_tables
 from app.schemas.health import HealthResponse
@@ -13,21 +15,40 @@ settings = get_settings()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     create_database_tables()
 
-    yield
+    timeout = httpx.Timeout(
+        connect=5.0,
+        read=settings.http_timeout_seconds,
+        write=10.0,
+        pool=5.0,
+    )
+
+    base_url = str(settings.ollama_base_url).rstrip("/")
+
+    async with httpx.AsyncClient(
+        base_url=base_url,
+        timeout=timeout,
+        headers={
+            "Content-Type": "application/json",
+        },
+    ) as http_client:
+        app.state.http_client = http_client
+
+        yield
 
 
 app = FastAPI(
     title=settings.app_name,
     description="API para gerenciamento e execução de agentes de IA.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
 
 app.include_router(agents_router)
+app.include_router(runs_router)
 
 
 SettingsDependency = Annotated[
