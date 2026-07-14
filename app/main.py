@@ -1,22 +1,40 @@
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI
 
+from app.api.routes.agents import router as agents_router
 from app.core.config import Settings, get_settings
+from app.db.init_db import create_database_tables
 from app.schemas.health import HealthResponse
 
+
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    create_database_tables()
+
+    yield
+
 
 app = FastAPI(
     title=settings.app_name,
     description="API para gerenciamento e execução de agentes de IA.",
-    version="0.1.0",
+    version="0.2.0",
+    lifespan=lifespan,
 )
+
+
+app.include_router(agents_router)
+
 
 SettingsDependency = Annotated[
     Settings,
     Depends(get_settings),
 ]
+
 
 @app.get(
     "/",
@@ -26,6 +44,7 @@ async def root() -> dict[str, str]:
     return {
         "message": "AgentDesk API",
     }
+
 
 @app.get(
     "/health",
