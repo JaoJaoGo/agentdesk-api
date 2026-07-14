@@ -1,0 +1,22 @@
+# Ambiente virtual
+.venv/
+
+# Variáveis de ambiente
+.env
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+
+# Banco local
+*.db
+*.sqlite
+*.sqlite3
+
+# Ferramentas
+.pytest_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
